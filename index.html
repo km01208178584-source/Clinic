@@ -639,6 +639,15 @@ T.ar.calmOff='تشغيل';T.en.calmOff='On';T.ar.calmOn='إيقاف';T.en.calmOn
 T.ar.startPage='الصفحة الأولى بعد الدخول';T.en.startPage='Start page after login';
 T.ar.resetPrefs='استعادة الإعدادات الافتراضية';T.en.resetPrefs='Reset to defaults';
 T.ar.resetDone='تمت استعادة الإعدادات';T.en.resetDone='Settings restored';
+T.ar.boxPrice='سعر العلبة';T.en.boxPrice='Box price';
+T.ar.perPill='سعر القرص';T.en.perPill='Price per unit';
+T.ar.boxPriceHint='يُقسم تلقائياً على عدد الأقراص في العلبة ليصبح سعر صرف القرص.';T.en.boxPriceHint='Divided automatically by units per box to get the dispensing price per unit.';
+T.ar.recalcBtn='إعادة حساب تكلفة الزيارات السابقة';T.en.recalcBtn='Recalculate cost of past visits';
+T.ar.recalcNote='يحسب سعر القرص في كل الزيارات السابقة من سعر العلبة الحالي في المخزن ÷ عدد الأقراص. الأدوية اللي ملهاش سعر في المخزن بتفضل زي ما هي.';T.en.recalcNote='Recomputes the unit price in all past visits from the current box price in stock ÷ units per box. Medicines with no price in stock stay unchanged.';
+T.ar.recalcAsk='هيتم تحديث تكلفة {m} دواء في {v} زيارة بسعر القرص الحالي من المخزن. لا يمكن التراجع. متابعة؟';T.en.recalcAsk='This will update the cost of {m} medicine lines in {v} visits using the current per-unit price from stock. It cannot be undone. Continue?';
+T.ar.recalcYes='نعم، أعد الحساب';T.en.recalcYes='Yes, recalculate';
+T.ar.recalcDone='تم تحديث {v} زيارة';T.en.recalcDone='{v} visits updated';
+T.ar.recalcNone='كل الزيارات محسوبة بالسعر الحالي، مفيش حاجة تتغير';T.en.recalcNone='All visits already use the current price; nothing to change';
 T.ar.noLib='تعذر تحميل مكتبة الاتصال. تأكد من الإنترنت وأعد فتح الصفحة.';T.en.noLib='Could not load the connection library. Check the internet and reload.';
 
 Object.assign(T.ar,{
@@ -1048,6 +1057,16 @@ function sortV(v){return v.slice().sort(function(a,b){var ka=a.date+' '+(a.time|
 function byName(a,b){return String(a.name).localeCompare(String(b.name),'ar');}
 function sortedStock(){return S.stock.slice().sort(byName);}
 function findStock(name){return S.stock.filter(function(s){return s.name===name;})[0];}
+function recalcPlan(){
+ var vs=0,ms=0;
+ S.visits.forEach(function(x){var ch=false;(x.meds||[]).forEach(function(m){var st=findStock(m.name);if(!st||!(st.cost>0))return;var nc=unitCost(st);if(nc!==m.cost){ch=true;ms++;}});if(ch)vs++;});
+ return {visits:vs,meds:ms};
+}
+function recalcApply(){
+ S.visits.forEach(function(x){(x.meds||[]).forEach(function(m){var st=findStock(m.name);if(!st||!(st.cost>0))return;m.cost=unitCost(st);});});
+ save('visits');
+}
+function unitCost(s){var c=s.cost||0,pb=s.perBox||0;return pb>0?Math.round(c/pb*10000)/10000:c;}
 function totalUnits(s){return (s.qty||0)+(s.boxes||0)*(s.perBox||0);}
 function lowItems(){return S.stock.filter(function(s){return totalUnits(s)<=s.min;});}
 function empVisits(e){return S.visits.filter(function(v){return v.empRef===e.id;});}
@@ -1620,11 +1639,11 @@ function stockCard(s){
    field('se-oexp-'+s.id,t('outerExp'),'<input type="month" id="se-oexp" dir="ltr" style="text-align:start" value="'+esc(s.outerExp||'')+'">')+
    '<div class="field full"><span class="lbl">'+esc(t('lotsTitle'))+'</span><small>'+esc(t('lotsHint'))+'</small>'+lotsFull(s).concat([{exp:'',boxes:0}]).map(function(l,i){return '<div class="grid2" style="margin-top:8px"><input type="month" id="se-lx-'+i+'" dir="ltr" style="text-align:start" value="'+esc(l.exp)+'" aria-label="'+esc(t('exp'))+'"><input type="number" min="0" inputmode="numeric" id="se-lb-'+i+'" value="'+(l.boxes||'')+'" placeholder="'+esc(t('boxes'))+'" aria-label="'+esc(t('boxes'))+'"></div>';}).join('')+'</div>'+
    field('se-min-'+s.id,t('minQty'),'<input type="number" min="0" id="se-min" value="'+s.min+'">')+
-   field('se-cost-'+s.id,t('costUnit')+' ('+t('cur')+')','<input type="number" min="0" step="0.01" id="se-cost" value="'+(s.cost||0)+'" inputmode="decimal">')+
+   field('se-cost-'+s.id,t('boxPrice')+' ('+t('cur')+')','<input type="number" min="0" step="0.01" id="se-cost" value="'+(s.cost||0)+'" inputmode="decimal">'+'<small>'+esc(t('boxPriceHint'))+'</small>')+
    field('se-ing-'+s.id,t('ingredient'),'<input type="text" id="se-ing" value="'+esc(s.ingredient||'')+'"><small>'+esc(t('ingHint'))+'</small>')+'</div>'+
    '<div class="actions"><button class="btn sm" data-act="sSave" data-id="'+esc(s.id)+'">'+esc(t('saveBtn'))+'</button><button class="btn ghost sm" data-act="sCancel">'+esc(t('cancel'))+'</button></div>';
  }
- return '<article class="item"><div class="head"><div style="min-width:0"><h3>'+esc(s.name)+'</h3><div class="meta"><span>'+esc(t('minQty'))+': '+s.min+'</span>'+stockLots(s).map(function(l){return '<span'+(daysTo(ymEnd(l.exp))<0?' class="bad"':'')+'>'+esc(l.outer?t('outer'):t('inner'))+' · '+esc(t('exp'))+': '+esc(fmtYM(l.exp))+' ('+(l.outer?l.qty:l.boxes+' '+t('boxWord'))+')</span>';}).join('')+(s.cost?'<span>'+esc(t('costUnit'))+': '+s.cost+' '+esc(t('cur'))+'</span>':'')+(s.ingredient?'<span>'+esc(s.ingredient)+'</span>':'')+'</div></div><div style="text-align:end">'+
+ return '<article class="item"><div class="head"><div style="min-width:0"><h3>'+esc(s.name)+'</h3><div class="meta"><span>'+esc(t('minQty'))+': '+s.min+'</span>'+stockLots(s).map(function(l){return '<span'+(daysTo(ymEnd(l.exp))<0?' class="bad"':'')+'>'+esc(l.outer?t('outer'):t('inner'))+' · '+esc(t('exp'))+': '+esc(fmtYM(l.exp))+' ('+(l.outer?l.qty:l.boxes+' '+t('boxWord'))+')</span>';}).join('')+(s.cost?'<span>'+esc(t('boxPrice'))+': '+s.cost+' '+esc(t('cur'))+(s.perBox?' · '+esc(t('perPill'))+': '+fm(unitCost(s))+' '+esc(t('cur')):'')+'</span>':'')+(s.ingredient?'<span>'+esc(s.ingredient)+'</span>':'')+'</div></div><div style="text-align:end">'+
   '<div style="margin-top:0;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+tag+(s.qty===0&&s.boxes>0?'<span class="tag sick">'+esc(t('wdHint'))+'</span>':'')+expTag(s)+'</div></div></div>'+
   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0"><div class="stat"><b>'+s.qty+'</b><span>'+esc(t('outer'))+'</span></div><div class="stat"><b>'+(s.boxes||0)+'</b><span>'+esc(t('inner'))+' · '+esc(t('boxWord'))+(s.perBox?' × '+s.perBox:'')+'</span></div></div>'+
   '<div class="actions">'+(s.boxes>0?'<button class="btn sm" data-act="wdOpen" data-id="'+esc(s.id)+'">'+ic('box')+'<span>'+esc(t('wd'))+'</span></button>':'')+'<button class="btn sm" data-act="dedOpen" data-id="'+esc(s.id)+'">'+ic('minus')+'<span>'+esc(t('ded'))+'</span></button>'+
@@ -1660,9 +1679,9 @@ function mvDoc(){
  return docHead(t('dedLog'))+'<table><tr><th>'+esc(t('date'))+'</th><th>'+esc(t('time'))+'</th><th>'+esc(t('medName'))+'</th><th>'+esc(t('qty'))+'</th><th>'+esc(t('status'))+'</th><th>'+esc(t('nurse'))+'</th><th>'+esc(t('notes'))+'</th></tr>'+rows+'</table>'+sigBlock();
 }
 function stockRows(){
- return [[t('medName'),t('outerQty'),t('innerBoxes'),t('perBox'),t('minQty'),t('exp'),t('status'),t('costUnit')+' ('+t('cur')+')',t('ingredient')]].concat(sortedStock().map(function(s){
+ return [[t('medName'),t('outerQty'),t('innerBoxes'),t('perBox'),t('minQty'),t('exp'),t('status'),t('boxPrice')+' ('+t('cur')+')',t('perPill')+' ('+t('cur')+')',t('ingredient')]].concat(sortedStock().map(function(s){
   var es=expState(s);
-  return [s.name,s.qty,s.boxes||0,s.perBox||0,s.min,stockLots(s).map(function(l){return (l.outer?t('outer'):t('inner'))+' '+fmtYM(l.exp)+' ('+(l.outer?l.qty:l.boxes+' '+t('boxWord'))+')';}).join(' | '),es==='expired'?t('expired'):es==='soon'?t('expSoon'):(totalUnits(s)===0?t('outStock'):totalUnits(s)<=s.min?t('lowStock'):t('inStock')),s.cost||0,s.ingredient||''];}));
+  return [s.name,s.qty,s.boxes||0,s.perBox||0,s.min,stockLots(s).map(function(l){return (l.outer?t('outer'):t('inner'))+' '+fmtYM(l.exp)+' ('+(l.outer?l.qty:l.boxes+' '+t('boxWord'))+')';}).join(' | '),es==='expired'?t('expired'):es==='soon'?t('expSoon'):(totalUnits(s)===0?t('outStock'):totalUnits(s)<=s.min?t('lowStock'):t('inStock')),s.cost||0,fm(unitCost(s)),s.ingredient||''];}));
 }
 function stockView(){
  var low=S.stock.filter(function(s){return totalUnits(s)>0&&totalUnits(s)<=s.min;}).length,out=S.stock.filter(function(s){return totalUnits(s)===0;}).length,ex=expItems().length;
@@ -1675,7 +1694,7 @@ function stockView(){
   field('sa-boxes',t('innerBoxes'),'<input type="number" min="0" inputmode="numeric" id="sa-boxes" value="0">')+field('sa-pb',t('perBox'),'<input type="number" min="0" inputmode="numeric" id="sa-pb" value="0">')+
   field('sa-min',t('minQty'),'<input type="number" min="0" inputmode="numeric" id="sa-min" value="5">')+
   field('sa-exp',t('expMonth'),'<input type="month" id="sa-exp" dir="ltr" style="text-align:start">')+
-  field('sa-cost',t('costUnit')+' ('+t('cur')+')','<input type="number" min="0" step="0.01" inputmode="decimal" id="sa-cost" value="0">')+field('sa-ing',t('ingredient'),'<input type="text" id="sa-ing"><small>'+esc(t('ingHint'))+'</small>')+
+  field('sa-cost',t('boxPrice')+' ('+t('cur')+')','<input type="number" min="0" step="0.01" inputmode="decimal" id="sa-cost" value="0">'+'<small>'+esc(t('boxPriceHint'))+'</small>')+field('sa-ing',t('ingredient'),'<input type="text" id="sa-ing"><small>'+esc(t('ingHint'))+'</small>')+
   '</div><div class="err" id="sa-err" style="margin-top:10px"></div><div style="margin-top:12px"><button class="btn" type="submit">'+esc(t('add'))+'</button></div></form>'+
   '<div class="filters" style="grid-template-columns:minmax(0,1fr)"><input type="search" data-sq="1" value="'+esc(S.sq)+'" placeholder="'+esc(t('sSearch'))+'" aria-label="'+esc(t('sSearch'))+'"></div>'+
   '<div class="chips" style="margin:10px 0 14px">'+fchip('all',t('all'))+fchip('low',t('fLow'))+fchip('exp',t('fExp'))+'<button type="button" class="chip" data-act="xlsxS">'+esc(t('exportStock'))+'</button></div>'+
@@ -1864,7 +1883,7 @@ function settingsView(){
   '<div class="err" id="pass-err"></div><div><button class="btn" type="submit">'+esc(t('updatePass'))+'</button></div></form>'+
  '<section class="card" style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0">'+esc(t('installApp'))+'</h2><p class="meta" style="margin:0">'+esc(isStandalone()?t('installed'):t('installHint'))+'</p>'+(!isStandalone()&&location.protocol!=='https:'&&location.hostname!=='localhost'?'<p class="meta bad" style="margin:0">'+esc(t('installNeedHttps'))+'</p>':'')+(deferredInstall&&!isStandalone()?'<div><button class="btn" data-act="install">'+esc(t('installBtn'))+'</button></div>':'')+'</section>'+
  '<section class="card" style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0">'+esc(t('data'))+'</h2><p class="meta" style="margin:0">'+esc(t('dataNote'))+'</p>'+
-  '<div class="actions"><button class="btn ghost" data-act="resetPrefs">'+esc(t('resetPrefs'))+'</button><button class="btn ghost" data-act="logout">'+ic('logout')+'<span>'+esc(t('logout'))+'</span></button></div></section>';
+  (S.role==='admin'?'<div class="actions"><button class="btn ghost" data-act="recalcCost">'+esc(t('recalcBtn'))+'</button></div><p class="meta" style="margin:0">'+esc(t('recalcNote'))+'</p>':'')+'<div class="actions"><button class="btn ghost" data-act="resetPrefs">'+esc(t('resetPrefs'))+'</button><button class="btn ghost" data-act="logout">'+ic('logout')+'<span>'+esc(t('logout'))+'</span></button></div></section>';
 }
 
 /* ---------- helpers: numbers ---------- */
@@ -2441,7 +2460,7 @@ function submitVisit(force){
  var oldV=S.editing?S.visits.filter(function(x){return x.id===S.editing;})[0]:null,oc={};
  if(oldV)(oldV.meds||[]).forEach(function(m){if(m.cost!==undefined)oc[m.name]=m.cost;});
  var v=Object.assign({},d,{empRef:e.id,empId:d.empId||e.empId||'',leaveDays:parseInt(d.leaveDays,10)||0,
-  meds:d.meds.map(function(m){var st=findStock(m.name);return {name:m.name,qty:m.qty,cost:(m.name in oc)?oc[m.name]:(st?(st.cost||0):0)};})});
+  meds:d.meds.map(function(m){var st=findStock(m.name);return {name:m.name,qty:m.qty,cost:(m.name in oc)?oc[m.name]:(st?unitCost(st):0)};})});
  delete v.retManual;
  if(!v.returnDate&&v.leaveDays>0&&v.date)v.returnDate=addD(v.date,v.leaveDays);
  if(!v.followup||(oldV&&oldV.followup!==v.followup))v.followupDone=false;
@@ -2487,6 +2506,7 @@ function act(a,p){
  else if(a==='setlang'){S.lang=v;save('lang');render();}
  else if(a==='theme'){S.theme=v;save('theme');render();}
  else if(a==='fs'||a==='dense'||a==='calm'||a==='start'){S[a]=v;save(a);applyEnv();render();}
+ else if(a==='recalcCost'){var pl=recalcPlan();if(!pl.meds){toast(t('recalcNone'));return;}ask(t('recalcAsk').replace('{v}',pl.visits).replace('{m}',pl.meds),t('recalcYes'),function(){recalcApply();render();toast(t('recalcDone').replace('{v}',pl.visits));});}
  else if(a==='photoDel'){S.photo='';try{localStorage.removeItem('fc_photo_'+S.user.id);}catch(e){}render();toast(t('photoGone'));}
  else if(a==='resetPrefs'){S.fs='md';S.dense='0';S.calm='0';S.start='home';S.theme='system';S.palette='green';S.ui='pro';save('fs','dense','calm','start','theme','palette','ui');applyEnv();render();toast(t('resetDone'));}
  else if(a==='ui'){S.ui=v;save('ui');applyEnv();render();}

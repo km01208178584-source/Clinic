@@ -1,5 +1,5 @@
 /* Caches only the app shell. Database calls (Supabase) are never cached, so medical data is not stored by the service worker. */
-const VERSION = 'fc-shell-v14';
+const VERSION = 'fc-shell-v16';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 const LIBS = ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js', 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'];
 
