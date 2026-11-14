@@ -400,6 +400,18 @@ input[type=time]{width:100%;min-height:46px;padding:9px 12px;border-radius:12px;
 .bellb{position:relative}
 .bellb .ndot{position:absolute;top:8px;inset-inline-end:9px;margin:0;background:var(--danger)}
 @media (max-width:640px){.tr{grid-template-columns:minmax(0,1fr) auto auto}.tr .c-dept,.tr .c-time{display:none}.minis{gap:8px}.mini b{font-size:19px}}
+/* v14: profile photo + display preferences */
+.uav{overflow:hidden}
+.uav img,.hav img{width:100%;height:100%;object-fit:cover;display:block}
+.avbig{width:88px;height:88px;border-radius:50%;font-size:28px}
+.hav{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#d8a878;color:#2b1a0a;font:700 13px var(--font-display);display:grid;place-items:center;overflow:hidden;padding:0;flex:none;cursor:pointer}
+@media (max-width:640px){.top .hav{display:none}}
+html[data-fs="sm"] body{zoom:.92}
+html[data-fs="lg"] body{zoom:1.1}
+html[data-fs="xl"] body{zoom:1.22}
+html[data-dense="1"] .card{padding:12px}
+html[data-dense="1"] .page{gap:12px}
+html[data-calm="1"] *,html[data-calm="1"] *::before,html[data-calm="1"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 </style>
 </head>
 <body>
@@ -550,7 +562,7 @@ function uid(){
 function num(v){var n=parseInt(v,10);return isNaN(n)?NaN:n;}
 
 var S={
- lang:store.get('lang','ar'),theme:store.get('theme','system'),palette:store.get('palette','green'),ui:store.get('ui','pro'),dashRange:'week',reqPre:null,
+ lang:store.get('lang','ar'),theme:store.get('theme','system'),palette:store.get('palette','green'),ui:store.get('ui','pro'),fs:store.get('fs','md'),dense:store.get('dense','0'),calm:store.get('calm','0'),start:store.get('start','home'),photo:'',dashRange:'week',reqPre:null,
  session:null,user:null,role:null,loading:true,loaded:false,recovering:false,loadErr:'',
  lists:{depts:[],officers:[]},visits:[],stock:[],hmeds:[],moves:[],employees:[],requests:[],handovers:[],places:[],temps:[],campaigns:[],screenings:[],camp:null,scFilter:'all',scDraft:null,scPre:null,users:null,uErr:'',uAdd:false,uCreated:null,
  view:'home',menu:false,auth:'login',draft:null,editing:null,addOpen:null,empId:null,eDraft:null,recv:null,wd:null,sEdit:null,ded:null,dedNurse:'',sq:'',sf:'all',mf:'all',mvN:15,ij:{period:today().slice(0,7),dept:'',work:'work'},
@@ -611,6 +623,22 @@ T.ar.sendLink='إرسال رابط الاستعادة';T.en.sendLink='Send reset
 T.ar.recoverTitle='تعيين كلمة مرور جديدة';T.en.recoverTitle='Set a new password';
 T.ar.passSet='تم تعيين كلمة المرور';T.en.passSet='Password set';
 T.ar.accountsNote='الحسابات يضيفها مسؤول النظام من لوحة Supabase.';T.en.accountsNote='Accounts are added by the system admin in Supabase.';
+T.ar.photo='الصورة الشخصية';T.en.photo='Profile photo';
+T.ar.photoPick='اختيار صورة';T.en.photoPick='Choose photo';
+T.ar.photoDel='حذف الصورة';T.en.photoDel='Remove photo';
+T.ar.photoNote='الصورة بتتحفظ على هذا الجهاز فقط وبتظهر بجانب اسمك وفي أعلى الشاشة.';T.en.photoNote='The photo is saved on this device only and appears next to your name and in the top bar.';
+T.ar.photoSaved='تم حفظ الصورة';T.en.photoSaved='Photo saved';
+T.ar.photoGone='تم حذف الصورة';T.en.photoGone='Photo removed';
+T.ar.photoErr='تعذر قراءة الصورة، جرّب صورة أخرى';T.en.photoErr='Could not read the image, try another one';
+T.ar.textSize='حجم الخط';T.en.textSize='Text size';
+T.ar.szSm='صغير';T.en.szSm='Small';T.ar.szMd='عادي';T.en.szMd='Normal';T.ar.szLg='كبير';T.en.szLg='Large';T.ar.szXl='كبير جداً';T.en.szXl='Extra large';
+T.ar.density='كثافة العرض';T.en.density='Layout density';
+T.ar.denseOff='مريح';T.en.denseOff='Comfortable';T.ar.denseOn='مضغوط';T.en.denseOn='Compact';
+T.ar.calm='الحركة والانتقالات';T.en.calm='Animations';
+T.ar.calmOff='تشغيل';T.en.calmOff='On';T.ar.calmOn='إيقاف';T.en.calmOn='Off';
+T.ar.startPage='الصفحة الأولى بعد الدخول';T.en.startPage='Start page after login';
+T.ar.resetPrefs='استعادة الإعدادات الافتراضية';T.en.resetPrefs='Reset to defaults';
+T.ar.resetDone='تمت استعادة الإعدادات';T.en.resetDone='Settings restored';
 T.ar.noLib='تعذر تحميل مكتبة الاتصال. تأكد من الإنترنت وأعد فتح الصفحة.';T.en.noLib='Could not load the connection library. Check the internet and reload.';
 
 Object.assign(T.ar,{
@@ -827,7 +855,7 @@ function onErr(e){
 function save(){
  var keys=[].slice.call(arguments),sync=[];
  keys.forEach(function(k){
-  if(k==='lang'||k==='theme'||k==='palette'||k==='ui')store.set(k,S[k]);
+  if(k==='lang'||k==='theme'||k==='palette'||k==='ui'||k==='fs'||k==='dense'||k==='calm'||k==='start')store.set(k,S[k]);
   else if(k==='lists'||SPEC[k])sync.push(k);
  });
  if(!sync.length||!sb)return;
@@ -951,6 +979,8 @@ function poll(){
  loadAll(true,false).catch(function(){});
 }
 function startSession(u){
+ if(!S.loaded)S.view=['home','new','visits','followups'].indexOf(S.start)>-1?S.start:'home';
+ S.photo=store.get('photo_'+u.id,'')||'';
  S.session=u.email;S.user={id:u.id,email:u.email,name:''};S.loading=true;S.loaded=false;S.loadErr='';S.role=null;render();
  sb.from('profiles').select('full_name,role').eq('id',u.id).maybeSingle().then(function(r){
   if(r.error)throw r.error;
@@ -993,7 +1023,7 @@ function fmt(d){if(!d)return '';var p=d.split('-');var dt=new Date(+p[0],+p[1]-1
 function monthLabel(m){var p=m.split('-');return new Date(+p[0],+p[1]-1,1).toLocaleDateString(S.lang==='ar'?'ar-EG-u-nu-latn':'en-GB',{month:'short',year:'2-digit'});}
 
 function applyEnv(){
- var r=document.documentElement;r.setAttribute('data-ui',S.ui==='classic'?'classic':'pro');applyPalette();
+ var r=document.documentElement;r.setAttribute('data-ui',S.ui==='classic'?'classic':'pro');applyPalette();r.setAttribute('data-fs',S.fs||'md');r.setAttribute('data-dense',S.dense==='1'?'1':'0');r.setAttribute('data-calm',S.calm==='1'?'1':'0');
  r.lang=S.lang;r.dir=S.lang==='ar'?'rtl':'ltr';
  if(S.theme==='system'){r.removeAttribute('data-theme');}else{r.setAttribute('data-theme',S.theme);}
  document.title=t('app');document.body.classList.toggle('is-admin',S.role==='admin');
@@ -1163,6 +1193,7 @@ function authView(){
 function navItems(){return [['home','home',t('home')],['new','plus',t('newVisit')],['visits','clip',t('visits')],['followups','bell',t('followups')],['injuries','cross',t('injReport')],['allowance','pill',t('allowance')],['employees','users',t('employees')],['campaigns','pulse',t('campaigns')],['stock','box',t('stock')],['temps','temp',t('temps')],['requests','file',t('requests')],['handover','check',t('handover')],['dashboard','dash',t('dashboard')],['reports','chart',t('reports')],['lists','list',t('lists')]].concat(S.role==='admin'?[['users','shield',t('users')]]:[]).concat([['settings','cog',t('settings')]]);}
 function curView(){return S.view==='employee'||S.view==='empForm'?'employees':S.view;}
 var NAV_GROUPS=[['secMain',['home','new','visits','followups','employees','injuries','allowance','campaigns']],['secServices',['stock','temps','requests','handover']],['secAdmin',['dashboard','reports','lists','users','settings']]];
+function avInner(){return S.photo?'<img src="'+esc(S.photo)+'" alt="">':esc(initials(S.user.name)||'؟');}
 function initials(n){var w=String(n||'').replace(/@.*/,'').trim().split(/\s+/).filter(Boolean);return (w[0]?w[0].charAt(0):'')+(w[1]?w[1].charAt(0):'');}
 function tickClock(){
  var a=document.getElementById('clk-t'),b=document.getElementById('clk-d');if(!a)return;
@@ -1186,7 +1217,7 @@ function shell(inner){
    if(rows.length)nav+='<div class="nav-sec">'+esc(t(g[0]))+'</div>'+rows.map(navBtn).join('');
   });
  }else items.forEach(function(it){nav+=navBtn(it);});
- var logout=pro?'<div class="ucard"><span class="uav">'+esc(initials(S.user.name)||'؟')+'</span><div class="uinfo"><b>'+esc(S.user.name)+'</b><small>'+esc(t('role_'+S.role))+'</small></div><button class="ib" data-act="logout" aria-label="'+esc(t('logout'))+'">'+ic('logout')+'</button></div>':'<div style="flex:1"></div><button class="nav-btn" data-act="logout">'+ic('logout')+'<span>'+esc(t('logout'))+'</span></button>';
+ var logout=pro?'<div class="ucard"><span class="uav">'+avInner()+'</span><div class="uinfo"><b>'+esc(S.user.name)+'</b><small>'+esc(t('role_'+S.role))+'</small></div><button class="ib" data-act="logout" aria-label="'+esc(t('logout'))+'">'+ic('logout')+'</button></div>':'<div style="flex:1"></div><button class="nav-btn" data-act="logout">'+ic('logout')+'<span>'+esc(t('logout'))+'</span></button>';
  function tab(v,i,l){return '<button data-act="nav" data-v="'+v+'"'+(cv===v?' aria-current="page"':'')+'>'+ic(i)+'<span>'+esc(l)+'</span>'+(v==='followups'&&fuDue()?'<span class="badge">'+fuDue()+'</span>':'')+'</button>';}
  var tabs=tab('home','home',t('home'))+tab('new','plus',t('newShort'))+tab('visits','clip',t('visits'))+tab('followups','bell',t('followups'))+
   '<button data-act="menu">'+ic('menu')+'<span>'+esc(t('more'))+'</span></button>';
@@ -1197,7 +1228,7 @@ function shell(inner){
  var clock=pro?'<div class="clock"><b id="clk-t"></b><small id="clk-d"></small></div>':'';
  return '<div class="shell"><aside class="side">'+brandBlock+nav+logout+'</aside>'+
   '<div class="main"><header class="top"><div style="display:flex;align-items:center;gap:10px;min-width:0"><button class="icon-btn only-m" data-act="menu" aria-label="'+esc(t('more'))+'">'+ic('menu')+'</button><div class="brand">'+markSvg()+'<span class="brand-name">'+esc(t('app'))+'</span></div>'+gsearch+'</div>'+
-  '<div style="display:flex;gap:8px;align-items:center">'+newBtn+(pro?'<button class="icon-btn bellb" data-act="nav" data-v="followups" aria-label="'+esc(t('followups'))+'">'+ic('bell')+((fuDue()||lowItems().length||expItems().length)?'<i class="ndot"></i>':'')+'</button>':'')+'<button class="icon-btn" data-act="lang" aria-label="'+esc(t('language'))+'" style="width:auto;padding:0 12px">'+esc(t('lang'))+'</button>'+(deferredInstall&&!isStandalone()?'<button class="icon-btn" data-act="install" style="width:auto;padding:0 12px;background:var(--brand);color:var(--onbrand);border-color:var(--brand)">'+esc(t('installShort'))+'</button>':'')+
+  '<div style="display:flex;gap:8px;align-items:center">'+newBtn+(pro?'<button class="icon-btn bellb" data-act="nav" data-v="followups" aria-label="'+esc(t('followups'))+'">'+ic('bell')+((fuDue()||lowItems().length||expItems().length)?'<i class="ndot"></i>':'')+'</button>':'')+'<button class="icon-btn" data-act="lang" aria-label="'+esc(t('language'))+'" style="width:auto;padding:0 12px">'+esc(t('lang'))+'</button><button class="hav" data-act="nav" data-v="settings" aria-label="'+esc(t('photo'))+'">'+avInner()+'</button>'+(deferredInstall&&!isStandalone()?'<button class="icon-btn" data-act="install" style="width:auto;padding:0 12px;background:var(--brand);color:var(--onbrand);border-color:var(--brand)">'+esc(t('installShort'))+'</button>':'')+
   '<button class="icon-btn" data-act="themeToggle" aria-label="'+esc(t('theme'))+'">'+ic(dark?'sun':'moon')+'</button>'+clock+'</div></header>'+
   '<div class="page">'+inner+'</div></div><nav class="tabs">'+tabs+'</nav>'+
   '<div class="drawer"'+(S.menu?'':' hidden')+'><button class="scrim" data-act="menu" aria-label="'+esc(t('cancel'))+'"></button><div class="panel">'+
@@ -1820,7 +1851,12 @@ function settingsView(){
  return '<h2 style="font-size:22px">'+esc(t('settings'))+'</h2>'+
  '<section class="card" style="display:flex;flex-direction:column;gap:16px"><div class="field"><span class="lbl">'+esc(t('uiStyle'))+'</span>'+seg('ui',S.ui==='classic'?'classic':'pro',[['pro',t('uiPro')],['classic',t('uiClassic')]])+'</div><div class="field"><span class="lbl">'+esc(t('theme'))+'</span>'+seg('theme',S.theme,[['system',t('themeAuto'),'auto'],['light',t('themeLight'),'sun'],['dark',t('themeDark'),'moon']])+'</div>'+
  '<div class="field"><span class="lbl">'+esc(t('palette'))+'</span><div class="chips">'+Object.keys(PALETTES).map(function(k){var pl=PALETTES[k];return '<button type="button" class="chip" data-act="palette" data-v="'+k+'" aria-pressed="'+(S.palette===k)+'"><span aria-hidden="true" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:'+pl.sw+';border:2px solid #fff;box-shadow:0 0 0 1px var(--line);margin-inline-end:6px;vertical-align:-2px"></span>'+esc(S.lang==='ar'?pl.n:pl.e)+'</button>';}).join('')+'</div></div>'+
- '<div class="field"><span class="lbl">'+esc(t('language'))+'</span>'+seg('setlang',S.lang,[['ar','العربية'],['en','English']])+'</div></section>'+
+ '<div class="field"><span class="lbl">'+esc(t('language'))+'</span>'+seg('setlang',S.lang,[['ar','العربية'],['en','English']])+'</div>'+
+ '<div class="field"><span class="lbl">'+esc(t('textSize'))+'</span>'+seg('fs',S.fs,[['sm',t('szSm')],['md',t('szMd')],['lg',t('szLg')],['xl',t('szXl')]])+'</div>'+
+ '<div class="field"><span class="lbl">'+esc(t('density'))+'</span>'+seg('dense',S.dense,[['0',t('denseOff')],['1',t('denseOn')]])+'</div>'+
+ '<div class="field"><span class="lbl">'+esc(t('calm'))+'</span>'+seg('calm',S.calm,[['0',t('calmOff')],['1',t('calmOn')]])+'</div>'+
+ '<div class="field"><span class="lbl">'+esc(t('startPage'))+'</span>'+seg('start',S.start,[['home',t('home')],['new',t('newShort')],['visits',t('visits')],['followups',t('followups')]])+'</div></section>'+
+ '<section class="card" style="display:flex;flex-direction:column;gap:14px"><h2 style="margin:0">'+esc(t('photo'))+'</h2><div style="display:flex;align-items:center;gap:16px"><span class="uav avbig">'+avInner()+'</span><div style="display:flex;flex-direction:column;gap:8px"><label class="btn sm" style="cursor:pointer">'+esc(t('photoPick'))+'<input type="file" accept="image/*" data-photo="1" hidden></label>'+(S.photo?'<button class="btn ghost sm" data-act="photoDel">'+esc(t('photoDel'))+'</button>':'')+'</div></div><p class="meta" style="margin:0">'+esc(t('photoNote'))+'</p></section>'+
  '<section class="card"><h2>'+esc(t('account'))+'</h2><div class="kv"><span>'+esc(t('name'))+'</span><span>'+esc(u.name)+'</span></div><div class="kv"><span>'+esc(t('email'))+'</span><span dir="ltr">'+esc(u.email)+'</span></div><div class="kv"><span>'+esc(t('role'))+'</span><span>'+esc(t('role_'+S.role))+'</span></div></section>'+
  '<form data-form="pass" class="card" style="display:flex;flex-direction:column;gap:14px"><h2 style="margin:0">'+esc(t('changePass'))+'</h2>'+
   field('p-old',t('oldPass'),'<input type="password" id="p-old" autocomplete="current-password" dir="ltr">')+
@@ -1828,7 +1864,7 @@ function settingsView(){
   '<div class="err" id="pass-err"></div><div><button class="btn" type="submit">'+esc(t('updatePass'))+'</button></div></form>'+
  '<section class="card" style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0">'+esc(t('installApp'))+'</h2><p class="meta" style="margin:0">'+esc(isStandalone()?t('installed'):t('installHint'))+'</p>'+(!isStandalone()&&location.protocol!=='https:'&&location.hostname!=='localhost'?'<p class="meta bad" style="margin:0">'+esc(t('installNeedHttps'))+'</p>':'')+(deferredInstall&&!isStandalone()?'<div><button class="btn" data-act="install">'+esc(t('installBtn'))+'</button></div>':'')+'</section>'+
  '<section class="card" style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0">'+esc(t('data'))+'</h2><p class="meta" style="margin:0">'+esc(t('dataNote'))+'</p>'+
-  '<div class="actions"><button class="btn ghost" data-act="logout">'+ic('logout')+'<span>'+esc(t('logout'))+'</span></button></div></section>';
+  '<div class="actions"><button class="btn ghost" data-act="resetPrefs">'+esc(t('resetPrefs'))+'</button><button class="btn ghost" data-act="logout">'+ic('logout')+'<span>'+esc(t('logout'))+'</span></button></div></section>';
 }
 
 /* ---------- helpers: numbers ---------- */
@@ -2420,6 +2456,28 @@ function submitVisit(force){
  go('visits');
  toast(S.editing===null&&warn?t('stockWarn'):t('saved'),warn);
 }
+function pickPhoto(inp){
+ var f=inp.files&&inp.files[0];if(!f)return;
+ if(!/^image\//.test(f.type)){toast(t('photoErr'),true);return;}
+ var fr=new FileReader();
+ fr.onerror=function(){toast(t('photoErr'),true);};
+ fr.onload=function(){
+  var im=new Image();
+  im.onerror=function(){toast(t('photoErr'),true);};
+  im.onload=function(){
+   try{
+    var n=256,c=document.createElement('canvas');c.width=n;c.height=n;
+    var m=Math.min(im.width,im.height),sx=(im.width-m)/2,sy=(im.height-m)/2;
+    c.getContext('2d').drawImage(im,sx,sy,m,m,0,0,n,n);
+    S.photo=c.toDataURL('image/jpeg',0.82);
+    store.set('photo_'+S.user.id,S.photo);
+    render();toast(t('photoSaved'));
+   }catch(e){toast(t('photoErr'),true);}
+  };
+  im.src=fr.result;
+ };
+ fr.readAsDataURL(f);
+}
 function act(a,p){
  var id=p.id,list=p.list,v=p.v;
  if(a==='nav'){go(v);}
@@ -2428,6 +2486,9 @@ function act(a,p){
  else if(a==='lang'){S.lang=S.lang==='ar'?'en':'ar';save('lang');render();}
  else if(a==='setlang'){S.lang=v;save('lang');render();}
  else if(a==='theme'){S.theme=v;save('theme');render();}
+ else if(a==='fs'||a==='dense'||a==='calm'||a==='start'){S[a]=v;save(a);applyEnv();render();}
+ else if(a==='photoDel'){S.photo='';try{localStorage.removeItem('fc_photo_'+S.user.id);}catch(e){}render();toast(t('photoGone'));}
+ else if(a==='resetPrefs'){S.fs='md';S.dense='0';S.calm='0';S.start='home';S.theme='system';S.palette='green';S.ui='pro';save('fs','dense','calm','start','theme','palette','ui');applyEnv();render();toast(t('resetDone'));}
  else if(a==='ui'){S.ui=v;save('ui');applyEnv();render();}
  else if(a==='gSearch'){var gq=document.getElementById('gq');S.filters.q=gq?gq.value:'';S.filters.month='';go('visits');}
  else if(a==='dashRange'){S.dashRange=v==='month'?'month':'week';render();}
@@ -2620,6 +2681,7 @@ document.addEventListener('input',function(ev){
 });
 document.addEventListener('change',function(ev){
  var el=ev.target;
+ if(el.getAttribute('data-photo')){pickPhoto(el);return;}
  if(el.getAttribute('data-al')){S.al.period=el.value;render();return;}
  if(el.getAttribute('data-ij')){S.ij[el.getAttribute('data-ij')]=el.value;render();return;}
  if(el.getAttribute('data-sc')==='name'&&S.scDraft){scNameChanged();return;}
